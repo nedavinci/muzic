@@ -50,7 +50,7 @@ class Album(models.Model):
     album_id = models.AutoField(primary_key=True, editable=False)
     artist = models.ForeignKey(Artist, blank=False, null=False)
     label = models.ForeignKey(Label, blank=True, null=True)
-    genre = models.ManyToManyField(Genre, blank=True, null=True)
+    genre = models.ManyToManyField(Genre, blank=True)
 
     is_available = models.BooleanField(default=True)
     add_time = models.DateTimeField(auto_now_add=True)
@@ -61,7 +61,7 @@ class Album(models.Model):
         blank=True,
         null=True,
         allow_files=False,
-     allow_folders=True)
+        allow_folders=True)
 
     title = models.CharField(max_length=255, blank=True, null=True)
     date = models.DateField()
@@ -119,7 +119,7 @@ class Cover(models.Model):
         upload_to=coverLocation,
         storage=covers_storage,
         blank=True,
-     null=True)
+        null=True)
     covertype = models.CharField(
         max_length=10, choices=COVER_TYPES, blank=False, null=False,
         default="front_out")
@@ -156,6 +156,15 @@ class Track(models.Model):
 
     track_num = models.PositiveSmallIntegerField()
     title = models.CharField(max_length=255)
+    path = models.FilePathField(
+        # unique=True,
+        blank=True,
+        null=True,
+        path=settings.MUSIC_LIBRARY_PATH,
+        recursive=True,
+        allow_files=True,
+        allow_folders=False,
+        match=".*\.flac$")
     track_artist = models.CharField(max_length=255, blank=True, null=True)
     length = models.PositiveIntegerField()
     disc = models.PositiveSmallIntegerField(default=1)
@@ -166,6 +175,7 @@ class Track(models.Model):
 
     def __unicode__(self):
         return '%s (%s)' % (self.title, self.album)
+
     class Meta:
         unique_together = (('album', 'track_num', 'disc'),)
 

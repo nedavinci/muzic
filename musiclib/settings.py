@@ -88,7 +88,7 @@ DATABASES = {
 
 LANGUAGE_CODE = 'ru-RU'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Yekaterinburg'
 
 USE_I18N = True
 
@@ -104,5 +104,6 @@ MUSIC_LIBRARY_PATH = os.path.join(os.path.expanduser("~"), "musiclibtest")
 STATIC_URL = '/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "static"),
-    MUSIC_LIBRARY_PATH
+    # MUSIC_LIBRARY_PATH,
 )
+STATIC_ROOT = os.path.join(BASE_DIR, "static_root")
