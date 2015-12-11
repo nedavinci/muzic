@@ -1,4 +1,4 @@
-attach '/home/noname/play_stat.db' as play_stat;
+attach '/home/nnm/play_stat.db' as play_stat;
 -- Artist
 insert into musicdb_artist (
     artist_id,
