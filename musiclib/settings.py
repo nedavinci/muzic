@@ -101,9 +101,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 MUSIC_LIBRARY_PATH = os.path.join(os.path.expanduser("~"), "musiclibtest")
 
-STATIC_URL = '/static/'
+# STATIC_URL = os.environ.get('SCRIPT_NAME', '') + '/static/'
+STATIC_URL = '/musiclib/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "static"),
     # MUSIC_LIBRARY_PATH,
 )
 STATIC_ROOT = os.path.join(BASE_DIR, "static_root")
+FORCE_SCRIPT_NAME = '/musiclib'
