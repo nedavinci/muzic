@@ -7,7 +7,6 @@ import os
 
 
 class AlbumPathField(forms.FilePathField):
-
         def filterchoices(self, choice):
                 k, v = choice
                 if not k:
@@ -25,7 +24,6 @@ class AlbumPathField(forms.FilePathField):
 
 
 class TrackPathField(forms.FilePathField):
-
         def __init__(self, *args, **kwargs):
                 super(TrackPathField, self).__init__(*args, **kwargs)
                 self.choices = sorted(self.choices, key=lambda x: x[1])
