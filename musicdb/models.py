@@ -56,7 +56,7 @@ class Album(models.Model):
     add_time = models.DateTimeField(auto_now_add=True)
     active_from = models.DateField(blank=True, null=True)
     path = models.FilePathField(
-        path=settings.MUSIC_LIBRARY_PATH,
+        path=unicode(settings.MUSIC_LIBRARY_PATH),
         recursive=True,
         blank=True,
         null=True,
@@ -160,7 +160,7 @@ class Track(models.Model):
         # unique=True,
         blank=True,
         null=True,
-        path=settings.MUSIC_LIBRARY_PATH,
+        path=unicode(settings.MUSIC_LIBRARY_PATH),
         recursive=True,
         allow_files=True,
         allow_folders=False,
