@@ -29,6 +29,7 @@ class AlbumPathField(forms.FilePathField):
             choices = sorted(choices, key=lambda x: x[1])
             cache.set(choices_cache_key, choices)
         else:
+            print 'from cache'
             acceptable_args = (
                 'required', 'widget', 'label', 'initial', 'help_text',
                 'error_messages', 'show_hidden_initial', 'validators',
@@ -80,6 +81,8 @@ class CoverInline(admin.TabularInline):
 
 class AlbumAdmin(admin.ModelAdmin):
         readonly_fields = ('rg_peak', 'rg_gain', 'add_time')
+        list_display = ('__unicode__', 'path')
+        list_editable = ('path',)
         fieldsets = (
             (None, {
                 'fields': (
