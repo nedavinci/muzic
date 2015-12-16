@@ -6,7 +6,7 @@ DEBUG = True
 FORCE_SCRIPT_NAME = '/musiclib'
 MUSIC_LIBRARY_PATH = '/home/music/lossless/'
 
-STATIC_URL = FORCE_SCRIPT_NAME + '/static/'
+STATIC_URL = FORCE_SCRIPT_NAME + '/static'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "static"),
 )

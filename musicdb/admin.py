@@ -1,33 +1,52 @@
+import os
+
 from django.contrib import admin
 from django.utils.html import format_html
 from django import forms
 from django.db import models as django_models
+from django.core.cache import cache
+
 from . import models
-import os
 
 
 class AlbumPathField(forms.FilePathField):
-        def filterchoices(self, choice):
-                k, v = choice
-                if not k:
-                        return True
-                result = bool(
-                    filter(lambda x: x.endswith('.flac'),
-                           os.listdir(k)))
-                return result
+    def filterchoices(self, choice):
+        k, v = choice
+        if not k:
+            return True
+        result = bool(
+            filter(lambda x: x.endswith('.flac'),
+                   os.listdir(k)))
+        return result
 
-        def __init__(self, *args, **kwargs):
-                super(AlbumPathField, self).__init__(*args, **kwargs)
-                self.choices = filter(self.filterchoices, self.choices)
-                self.choices = sorted(self.choices, key=lambda x: x[1])
-                self.widget.choices = self.choices
+    def __init__(self, *args, **kwargs):
+        choices_cache_key = self.__class__.__name__ + '.choices'
+        choices = cache.get(choices_cache_key)
+        if not choices:
+            super(AlbumPathField, self).__init__(*args, **kwargs)
+            choices = self.choices
+            choices = filter(self.filterchoices, choices)
+            choices = sorted(choices, key=lambda x: x[1])
+            cache.set(choices_cache_key, choices)
+        else:
+            acceptable_args = (
+                'required', 'widget', 'label', 'initial', 'help_text',
+                'error_messages', 'show_hidden_initial', 'validators',
+                'localize', 'label_suffix',
+            )
+            new_kwargs = {
+                k: v for k, v in kwargs.iteritems() if k in acceptable_args}
+            super(forms.FilePathField, self).__init__(
+                choices=(), *args, **new_kwargs)
+        self.choices = choices
+        self.widget.choices = self.choices
 
 
 class TrackPathField(forms.FilePathField):
-        def __init__(self, *args, **kwargs):
-                super(TrackPathField, self).__init__(*args, **kwargs)
-                self.choices = sorted(self.choices, key=lambda x: x[1])
-                self.widget.choices = self.choices
+    def __init__(self, *args, **kwargs):
+        super(TrackPathField, self).__init__(*args, **kwargs)
+        self.choices = sorted(self.choices, key=lambda x: x[1])
+        self.widget.choices = self.choices
 
 
 class TrackInline(admin.TabularInline):
@@ -37,8 +56,8 @@ class TrackInline(admin.TabularInline):
         model = models.Track
         can_delete = False
         extra = 0
-        readonly_fields = ('length', 'rg_peak', 'rg_gain')
-        exclude = ('lirycs',)
+        readonly_fields = ['length', 'rg_peak', 'rg_gain']
+        exclude = ['lirycs',]
 
         def has_add_permission(self, request):
                 return False
@@ -105,9 +124,14 @@ class AlbumAdmin(admin.ModelAdmin):
                     if obj and obj.path:
                         instance.formfield_overrides[
                             django_models.FilePathField]['path'] = obj.path
+                        instance.exclude = filter(
+                            lambda x: x != 'path',
+                            instance.exclude
+                        )
                     else:
                         instance.formfield_overrides[
                             django_models.FilePathField].pop('path', None)
+                        instance.exclude.append('path')
             return instances
 
 
