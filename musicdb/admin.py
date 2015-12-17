@@ -58,7 +58,7 @@ class TrackInline(admin.TabularInline):
         can_delete = False
         extra = 0
         readonly_fields = ['length', 'rg_peak', 'rg_gain']
-        exclude = ['lirycs',]
+        exclude = ['lirycs', ]
 
         def has_add_permission(self, request):
                 return False
@@ -81,8 +81,9 @@ class CoverInline(admin.TabularInline):
 
 class AlbumAdmin(admin.ModelAdmin):
         readonly_fields = ('rg_peak', 'rg_gain', 'add_time')
-        list_display = ('__unicode__', 'path')
-        list_editable = ('path',)
+        list_display = ('artist', 'date', 'title', 'path')
+        # list_display = ('__unicode__', 'path')
+        # list_editable = ('path', )
         fieldsets = (
             (None, {
                 'fields': (
@@ -115,7 +116,10 @@ class AlbumAdmin(admin.ModelAdmin):
 
         def __init__(self, *args, **kwargs):
                 self.formfield_overrides = {
-                    django_models.FilePathField: {'form_class': AlbumPathField}
+                    django_models.FilePathField: {
+                        'form_class': AlbumPathField,
+                        # 'widget': forms.TextInput()
+                    }
                 }
                 return super(AlbumAdmin, self).__init__(*args, **kwargs)
 

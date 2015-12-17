@@ -8,5 +8,5 @@ if settings.DEBUG:
     urlpatterns.append(
         url(r'^media/(?P<path>.*)$', 'django.views.static.serve',
             {'document_root': settings.MUSIC_LIBRARY_PATH},
-            name="music-library-static")
+            )  # name="music-library-static")
     )
