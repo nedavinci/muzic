@@ -55,7 +55,7 @@ class Migration(migrations.Migration):
             name='Cover',
             fields=[
                 ('cover_id', models.AutoField(serialize=False, editable=False, primary_key=True)),
-                ('cover', models.ImageField(storage=django.core.files.storage.FileSystemStorage(base_url='/musicdb/media/', location=b'/home/noname/musiclibtest'), null=True, upload_to=musicdb.models.coverLocation, blank=True)),
+                ('cover', models.ImageField(storage=django.core.files.storage.FileSystemStorage(base_url='/musicdb/media/', location=b'/home/noname/musiclibtest'), null=True, upload_to=musicdb.models.cover_location, blank=True)),
                 ('covertype', models.CharField(default='front_out', max_length=10, choices=[('back_out', 'back out'), ('front_out', 'front out'), ('back_in', 'back in'), ('front_in', 'front in'), ('disc', 'disc'), ('in', 'in'), ('out', 'out'), ('booklet', 'booklet')])),
                 ('sort', models.PositiveSmallIntegerField(default=1)),
                 ('album', models.ForeignKey(to='musicdb.Album')),

@@ -1,12 +1,13 @@
-from django.conf.urls import url
+from django.conf.urls import include, url
 from django.conf import settings
+from django.views.static import serve
 
 urlpatterns = [
+    url(r'^select2/', include('django_select2.urls')),
 ]
 
 if settings.DEBUG:
     urlpatterns.append(
-        url(r'^media/(?P<path>.*)$', 'django.views.static.serve',
-            {'document_root': settings.MUSIC_LIBRARY_PATH},
-            )  # name="music-library-static")
+        url(r'^media/(?P<path>.*)$', serve,
+            {'document_root': settings.MUSIC_LIBRARY_PATH},)
     )

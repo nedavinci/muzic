@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_select2',
     'musicdb',
 ]
 
@@ -106,10 +107,10 @@ CACHES = {
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
-STATIC_URL = '/static/'
-STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, "static"),
-)
-STATIC_ROOT = os.path.join(BASE_DIR, "static_root")
+# STATIC_URL = '/static/'
+# STATICFILES_DIRS = (
+#     os.path.join(BASE_DIR, "static"),
+# )
+# STATIC_ROOT = os.path.join(BASE_DIR, "static_root")
 
 MUSIC_LIBRARY_PATH = os.path.join(os.path.expanduser("~"), "music")

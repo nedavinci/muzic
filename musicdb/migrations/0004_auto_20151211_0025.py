@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='track',
             name='path',
-            field=models.FilePathField(null=True, recursive=True, blank=True, path=b'/home/noname/musiclibtest', unique=True, match='.*\\.flac$'),
+            field=models.FilePathField(null=True, recursive=True, blank=True, path=b'/home/noname/musiclibtest', unique=False, match='.*\\.flac$'),
         ),
     ]

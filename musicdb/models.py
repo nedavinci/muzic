@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+from os import path, rename
+
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
-from os import path, rename
 from django.db.models.signals import post_delete, post_save
 from django.dispatch.dispatcher import receiver
 
@@ -19,23 +20,39 @@ class Artist(models.Model):
     def __unicode__(self):
         return self.name
 
-    class Meta:
+    class Meta(object):
         ordering = ['name']
 
 
 class Label(models.Model):
     name = models.CharField(max_length=256, blank=True, null=True)
+    mbid = models.CharField(max_length=36, blank=True, null=True)
+
+    def __unicode__(self):
+        return self.name
+
+
+class Release(models.Model):
+    label = models.ForeignKey(Label, on_delete=models.CASCADE)
+    group = models.ForeignKey('Album', on_delete=models.CASCADE)
+    catalog_num = models.CharField(max_length=256, blank=True, null=True)
 
 
 class Genre(models.Model):
-    name = models.CharField(max_length=256, blank=True, null=True)
+    name = models.CharField(max_length=256, blank=True, null=True, unique=True)
+
+    def __unicode__(self):
+        return self.name
 
 
 class Album(models.Model):
+    MY_RIP = 0
+    WHAT_CD = 1
+    WAFFLES_FM = 2
     ALBUM_SOURCES = (
-        (0, "my"),
-        (1, "what.cd"),
-        (2, "waffles.fm"),
+        (MY_RIP, "my"),
+        (WHAT_CD, "what.cd"),
+        (WAFFLES_FM, "waffles.fm"),
     )
     RELEASE_TYPES = (
         (0, "LP"),
@@ -49,8 +66,10 @@ class Album(models.Model):
 
     album_id = models.AutoField(primary_key=True, editable=False)
     artist = models.ForeignKey(Artist, blank=False, null=False)
-    label = models.ForeignKey(Label, blank=True, null=True)
-    genre = models.ManyToManyField(Genre, blank=True)
+
+    labels = models.ManyToManyField(Label, blank=True, through=Release)
+
+    genre = models.ManyToManyField(Genre)
 
     is_available = models.BooleanField(default=True)
     add_time = models.DateTimeField(auto_now_add=True)
@@ -63,14 +82,13 @@ class Album(models.Model):
         allow_files=False,
         allow_folders=True)
 
-    title = models.CharField(max_length=255, blank=True, null=True)
+    title = models.CharField(max_length=255)
     date = models.DateField()
     release_date = models.DateField(blank=True, null=True)
 
-    catalog_num = models.CharField(max_length=256, blank=True, null=True)
     barcode = models.CharField(max_length=256, blank=True, null=True)
     source = models.PositiveSmallIntegerField(
-            choices=ALBUM_SOURCES, default=1)
+        choices=ALBUM_SOURCES, default=1)
     source_id = models.CharField(max_length=256, blank=True, null=True)
     release_type = models.PositiveSmallIntegerField(
         choices=RELEASE_TYPES, default=0)
@@ -85,28 +103,27 @@ class Album(models.Model):
         return '%s - %d - %s' % (self.artist,
                                  self.date.year, self.title)
 
-    class Meta:
+    class Meta(object):
         ordering = ['artist']
 
 
-def coverLocation(instance, filename):
+def cover_location(instance, filename):
     filename, extension = path.splitext(instance.cover.name)
     location = "{}/covers/{}_{}{}".format(
-        path.relpath(instance.album.path, settings.MUSIC_LIBRARY_PATH),
-        instance.covertype, instance.sort, extension)
+        instance.album.path, instance.covertype, instance.sort, extension)
     return location
 
 
 class Cover(models.Model):
     COVER_TYPES = (
-        ("back_out",  "back out"),
+        ("back_out", "back out"),
         ("front_out", "front out"),
-        ("back_in",   "back in"),
-        ("front_in",  "front in"),
-        ("disc",      "disc"),
-        ("in",        "in"),
-        ("out",       "out"),
-        ("booklet",   "booklet"),
+        ("back_in", "back in"),
+        ("front_in", "front in"),
+        ("disc", "disc"),
+        ("in", "in"),
+        ("out", "out"),
+        ("booklet", "booklet"),
     )
 
     covers_storage = FileSystemStorage(
@@ -116,7 +133,7 @@ class Cover(models.Model):
     album = models.ForeignKey(Album)
 
     cover = models.ImageField(
-        upload_to=coverLocation,
+        upload_to=cover_location,
         storage=covers_storage,
         blank=True,
         null=True)
@@ -126,7 +143,7 @@ class Cover(models.Model):
     sort = models.PositiveSmallIntegerField(
         blank=False, null=False, default=1)
 
-    class Meta:
+    class Meta(object):
         unique_together = (
             ('album', 'covertype', 'sort'),
         )
@@ -164,11 +181,10 @@ class Track(models.Model):
         recursive=True,
         allow_files=True,
         allow_folders=False,
-        match=".*\.flac$")
+        match=r".*\.flac$")
     track_artist = models.CharField(max_length=255, blank=True, null=True)
     length = models.PositiveIntegerField()
     disc = models.PositiveSmallIntegerField(default=1)
-    uri = models.CharField(max_length=1024, blank=True, null=True)
     lirycs = models.TextField(blank=True, null=True)
     rg_peak = models.FloatField(blank=True, null=True)
     rg_gain = models.FloatField(blank=True, null=True)
@@ -176,7 +192,7 @@ class Track(models.Model):
     def __unicode__(self):
         return '%s (%s)' % (self.title, self.album)
 
-    class Meta:
+    class Meta(object):
         unique_together = (('album', 'track_num', 'disc'),)
 
 
@@ -197,6 +213,6 @@ class PlayLog(models.Model):
     def __unicode__(self):
         return '%s - %s' % (self.time, self.track)
 
-    class Meta:
+    class Meta(object):
         unique_together = (('track', 'time', 'source'),)
         ordering = ['-time']
