@@ -1,0 +1,23 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+{% load static from admin_static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    {{ form.media.css }}
+{% endblock %}
+
+{% block extrahead %}
+    <script type="text/javascript" src="{% static "admin/js/vendor/jquery/jquery.js" %}"></script>
+    <script type="text/javascript" src="{% static "admin/js/jquery.init.js" %}"></script>
+
+    {{ block.super }}
+    {{ form.media.js }}
+{% endblock %}
+
+{% block content %}
+<form action="{% url 'admin:musicdb_album_add' %}" method="get">{% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" />{% trans "Choose" %}</button>
+</form>
+{% endblock %}

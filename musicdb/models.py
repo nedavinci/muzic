@@ -31,10 +31,13 @@ class Label(models.Model):
     def __unicode__(self):
         return self.name
 
+    class Meta(object):
+        ordering = ['name']
+
 
 class Release(models.Model):
     label = models.ForeignKey(Label, on_delete=models.CASCADE)
-    group = models.ForeignKey('Album', on_delete=models.CASCADE)
+    album = models.ForeignKey('Album', on_delete=models.CASCADE)
     catalog_num = models.CharField(max_length=256, blank=True, null=True)
 
 
@@ -79,6 +82,7 @@ class Album(models.Model):
         recursive=True,
         blank=True,
         null=True,
+        unique=True,
         allow_files=False,
         allow_folders=True)
 
@@ -93,7 +97,8 @@ class Album(models.Model):
     release_type = models.PositiveSmallIntegerField(
         choices=RELEASE_TYPES, default=0)
     comment = models.TextField(blank=True, null=True)
-    edition_title = models.CharField(max_length=256, blank=True, null=True)
+    edition_title = models.CharField(
+            max_length=256, blank=True, null=True)
 
     mbid = models.CharField(max_length=36, blank=True, null=True)
     rg_peak = models.FloatField(blank=True, null=True, editable=False)
@@ -124,6 +129,7 @@ class Cover(models.Model):
         ("in", "in"),
         ("out", "out"),
         ("booklet", "booklet"),
+        ("other", "other"),
     )
 
     covers_storage = FileSystemStorage(
@@ -135,6 +141,7 @@ class Cover(models.Model):
     cover = models.ImageField(
         upload_to=cover_location,
         storage=covers_storage,
+        max_length=255,
         blank=True,
         null=True)
     covertype = models.CharField(
@@ -173,8 +180,8 @@ class Track(models.Model):
 
     track_num = models.PositiveSmallIntegerField()
     title = models.CharField(max_length=255)
+    track_artist = models.CharField(max_length=255, blank=True, null=True)
     path = models.FilePathField(
-        # unique=True,
         blank=True,
         null=True,
         path=unicode(settings.MUSIC_LIBRARY_PATH),
@@ -182,18 +189,17 @@ class Track(models.Model):
         allow_files=True,
         allow_folders=False,
         match=r".*\.flac$")
-    track_artist = models.CharField(max_length=255, blank=True, null=True)
     length = models.PositiveIntegerField()
     disc = models.PositiveSmallIntegerField(default=1)
     lirycs = models.TextField(blank=True, null=True)
-    rg_peak = models.FloatField(blank=True, null=True)
-    rg_gain = models.FloatField(blank=True, null=True)
+    rg_peak = models.FloatField(blank=True, null=True, editable=False)
+    rg_gain = models.FloatField(blank=True, null=True, editable=False)
 
     def __unicode__(self):
         return '%s (%s)' % (self.title, self.album)
 
     class Meta(object):
-        unique_together = (('album', 'track_num', 'disc'),)
+        unique_together = (('album', 'track_num', 'disc'), ('path', 'album'))
 
 
 class PlayLog(models.Model):

@@ -1,0 +1,96 @@
+<input type="file" id="{{ inline_admin_formset.formset.prefix }}-files-multi" name="{{ inline_admin_formset.formset.prefix }}-files-multi" multiple accept="image/*">
+
+{% include "admin/edit_inline/tabular.html" %}
+
+<script type="text/javascript">
+(function($) {
+    prefix = 'cover_set';
+
+    $group = $('#'+prefix+'-group');
+
+    $group.on('change', '.field-covertype select', function() {
+        covertype = $(this).val();
+        $this_row = $(this).closest('.form-row');
+
+        $last_this_type = $(this).closest('.form-row').prevAll().filter(function() {
+            result = $(this).find('.field-covertype select').val() == covertype;
+            return result;
+        }).first();
+
+        if ($last_this_type.length) {
+            prev_val = parseInt($last_this_type.find('.field-sort input').val());
+            if (!isNaN(prev_val))
+                $this_row.find('.field-sort input').val(prev_val + 1);
+        }
+    });
+
+    function getRowVals($row) {
+        $sort_input = $row.find('.field-sort input');
+        $type_input = $row.find('.field-covertype select');
+        $delete_input = $row.find('.delete input');
+
+        if ($delete_input.prop('checked'))
+            return false;
+        return [$sort_input.val(), $type_input.val()];
+    }
+
+    $group.closest('form').submit(function(e) {
+        validation_error = false;
+
+        $group.find('.form-row:not(.empty-form)')
+            .css('background-color', '')
+            .each(function() {
+                $row = $(this);
+                row_vals = getRowVals($row);
+                if (!row_vals) return false;
+
+                $row.siblings('.form-row:not(.empty-form)').filter(function(){
+                    row_vals2 = getRowVals($(this));
+                    if (!row_vals2) return false;
+
+                    result = row_vals2[0] == row_vals[0] && row_vals2[1] == row_vals[1]
+                    if (result) validation_error = true;
+                    return result;
+                }).css('background-color', '#FF8B97');
+        });
+
+        if (validation_error) {
+            e.preventDefault();
+            $('html, body').animate({
+                scrollTop: $group.offset().top
+            });
+        }
+    });
+
+    $('#'+prefix+'-files-multi').change(function() {
+        files = this.files;
+
+        cur_file_index = 0;
+        $(document).on('formset:added', function(e, $row, pref) {
+            if (pref !== prefix) return;
+
+            file = files[cur_file_index];
+            $row.find('.field-cover').text(file.name);
+
+            $img = $('<img>')
+                   .attr('src', window.URL.createObjectURL(file))
+                   .attr('width', 150);
+
+            row_id = $row.attr('id');
+            $input = $('<input type="hidden">')
+                     .attr('name', row_id+'-cover')
+                     .val(cur_file_index);
+            $row.find('.field-thumb p').replaceWith($img, $input);
+
+            cur_file_index++;
+        });
+
+        $addButton = $('#'+prefix+'-group .add-row a');
+        for (var i = 0; i < this.files.length; i++) {
+            $addButton.click();
+        }
+
+        $(document).off('formset:added');
+    });
+})(django.jQuery);
+</script>
