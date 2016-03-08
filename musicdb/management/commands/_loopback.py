@@ -3,13 +3,15 @@
 import hashlib
 import os
 import stat
-import time
 import datetime
 from errno import ENOENT
+from threading import Lock
+import StringIO
 
 from django.core.cache import cache
 from django.db.models import Q
 from django.conf import settings
+from django.utils.functional import cached_property
 from fuse import FuseOSError, LoggingMixIn, Operations
 import audiotools
 
@@ -18,6 +20,12 @@ from musicdb import models
 
 class MusicFsEntry(LoggingMixIn, Operations):
     instance = None
+    fd = {}
+    last_fd = 0
+
+    @classmethod
+    def from_fd(cls, fd):
+        return MusicFsEntry.fd[fd]
 
     @staticmethod
     def fat_restrict(string):
@@ -32,6 +40,19 @@ class MusicFsEntry(LoggingMixIn, Operations):
     def get_instance(self):
         return self.instance
 
+    def set_fd(self):
+        MusicFsEntry.last_fd += 1
+        MusicFsEntry.fd[MusicFsEntry.last_fd] = self
+        return MusicFsEntry.last_fd
+
+    @staticmethod
+    def get_by_fd(fd_id):
+        return MusicFsEntry.fd[fd_id]
+
+    @staticmethod
+    def clean_fd(fd):
+        MusicFsEntry.fd.pop(fd)
+
 
 class MusicDir(MusicFsEntry):
     inode = 0
@@ -42,7 +63,7 @@ class MusicDir(MusicFsEntry):
         if len(path) == 0:
             obj = cls()
         elif len(path) == 1:
-            album_id = cache.get('fuse-%s-%s' % (cls.__name__, hashlib.md5(path[0].encode('utf-8')).hexdigest()))
+            album_id = cache.get('fuse-%s-%s-pk' % (cls.__name__, hashlib.md5(path[0].encode('utf-8')).hexdigest()))
             if not album_id:
                 parent = cls()
                 parent_entries = parent.entries()
@@ -63,7 +84,7 @@ class MusicDir(MusicFsEntry):
         if self.instance:
             album = self.instance
             path = self.__class__.fat_restrict(u"%s–%d–%s" % (album.artist.name, album.date.year, album.title))
-            cache.set('fuse-%s-%s' % (
+            cache.set('fuse-%s-%s-pk' % (
                 self.__class__.__name__, hashlib.md5(path.encode('utf-8')).hexdigest()), album.pk)
             return path
         else:
@@ -86,11 +107,19 @@ class MusicDir(MusicFsEntry):
         return entries
 
     def readdir(self, *args):
-        entries = self.entries()
-        return ['.', '..'] + entries.keys()
+        cache_key = 'fuse-%s-%s-list' % (
+                self.__class__.__name__, hashlib.md5(self.path().encode('utf-8')).hexdigest())
+        result = ['.', '..']
+        if cache.get(cache_key):
+            result += cache.get(cache_key)
+        else:
+            entries = self.entries()
+            cache.set(cache_key, entries.keys())
+            result += entries.keys()
+        return result
 
-    # def opendir(self, *args):
-    #     return 5
+    def opendir(self, *args):
+        return self.set_fd()
 
     def getattr(self, *args):
         attrs = dict({
@@ -109,6 +138,8 @@ class MusicDir(MusicFsEntry):
 
 class MusicFile(MusicFsEntry):
     instance = None
+    fh = None
+    rwlock = Lock()
 
     @classmethod
     def from_path(cls, path):
@@ -121,23 +152,64 @@ class MusicFile(MusicFsEntry):
     def __init__(self, instance):
         self.instance = instance
 
-    def getattr(self, *args):
-        filename = audiotools.Filename.from_unicode(self.abs_path())
-        audiofile = audiotools.open_files((filename,))[0]
-        current_meta = audiofile.get_metadata()
-        # if current_meta.has_block(4):
-        #     vorbis_comment = current_meta.get_block(4)
+    @cached_property
+    def audiotools_audiofile(self):
+        audiotools_filename = audiotools.Filename.from_unicode(self.abs_path())
+        audiofile = audiotools.open_files((audiotools_filename,))[0]
+        return audiofile
+
+    def get_metadata(self):
+        audiofile = self.audiotools_audiofile
+        return audiofile.get_metadata()
+
+    @cached_property
+    def currentmeta(self):
+        meta = self.get_metadata()
+        return meta
+
+    @cached_property
+    def newmeta(self):
+        meta = self.get_metadata()
 
         track = self.instance
-        new_meta = audiotools.MetaData(
+        newmeta = audiotools.MetaData(
                 track_name=track.title,
                 track_number=track.track_num,
                 album_name=track.album.title,
                 artist_name=track.album.artist.name,
                 year=track.album.date.year,
         )
-        new_meta = audiotools.flac.FlacMetaData.converted(new_meta)
+        new_vorbiscomment = audiotools.flac.Flac_VORBISCOMMENT.converted(newmeta)
 
+        if meta.has_block(new_vorbiscomment.BLOCK_ID):
+            meta.replace_blocks(new_vorbiscomment.BLOCK_ID, [new_vorbiscomment])
+        else:
+            meta.add_block(new_vorbiscomment)
+        return meta
+
+    @staticmethod
+    def metatobytes(meta):
+        meta_bytes = StringIO.StringIO()
+        writer = audiotools.bitstream.BitstreamWriter(meta_bytes, False)
+        writer.write_bytes("fLaC")
+
+        meta.build(writer)
+
+        return meta_bytes
+
+    @cached_property
+    def currentheader_bytes(self):
+        return self.__class__.metatobytes(self.currentmeta)
+
+    @cached_property
+    def newheader_bytes(self):
+        return self.__class__.metatobytes(self.newmeta)
+
+    @cached_property
+    def size_diff(self):
+        return self.newheader_bytes.len - self.currentheader_bytes.len
+
+    def getattr(self, *args):
         statinfo = os.stat(self.abs_path())
         return dict({
             'st_ino': self.instance.pk,      # ino
@@ -145,7 +217,7 @@ class MusicFile(MusicFsEntry):
             'st_nlink': 1,      # nlink
             'st_uid':  0,       # uid
             'st_gid':  0,       # gid
-            'st_size': statinfo.st_size - current_meta.size() + new_meta.size(),       # size
+            'st_size': statinfo.st_size + self.size_diff,       # size
             'st_atime': 0,      # int(rand(3600))*86400, #atime
             'st_mtime': 0,      # int(rand(3600))*86400, #mtime
             'st_ctime': 0,       # int(rand(3600))*86400, #ctime
@@ -158,20 +230,61 @@ class MusicFile(MusicFsEntry):
     def abs_path(self):
         return os.path.join(settings.MUSIC_LIBRARY_PATH, self.instance.album.path, self.instance.path)
 
+    def open(self, *args):
+        self.fh = os.open(self.abs_path(), os.O_RDONLY)
+        return self.set_fd()
+
+    def read(self, path, size, offset, fh, recursion=False):
+        # print '-> %s' % repr((path, size, offset, fh))
+        if not recursion:
+            self.rwlock.acquire()
+        try:
+            if offset < self.newheader_bytes.len:
+                self.newheader_bytes.seek(offset, 0)
+                result = self.newheader_bytes.read(size)
+
+                if len(result) < size:
+                    result += self.read(path, size - len(result), offset + len(result), fh, True)
+            else:
+                os.lseek(self.fh, offset - self.size_diff, 0)
+                result = os.read(self.fh, size)
+        finally:
+            if not recursion:
+                self.rwlock.release()
+        return result
+
 
 class Loopback(Operations):
     def __call__(self, op, *args, **kwargs):
         if op == 'init':
             return self.__init__()
         else:
-            start = time.time()
-            print '-> %s %s' % (op, repr(args))
+            # import time
+            # start = time.time()
+            # print '-> %s %s' % (op, repr(args))
             path = args[0]
-            path_list = filter(lambda x: x != '', path.split('/'))
-            if len(path_list) < 2:
-                instance = MusicDir.from_path(path_list)
-            else:
-                instance = MusicFile.from_path(path_list)
+
+            fd = None
+            instance = None
+            if op in ('flush', 'fsync', 'fsyncdir', 'getattr', 'read', 'readdir', 'truncate', 'write', 'release',
+                      'releasedir', 'release', 'releasedir'):
+                fd = args[-1]
+                if fd:
+                    instance = MusicFsEntry.get_by_fd(fd)
+
+            # clean fd list
+            if op in ('release', 'releasedir'):
+                fd = args[1]
+                MusicFsEntry.clean_fd(fd)
+
+            if not instance:
+                path_list = filter(lambda x: x != '', path.split('/'))
+                if len(path_list) < 2:
+                    instance = MusicDir.from_path(path_list)
+                else:
+                    instance = MusicFile.from_path(path_list)
+
             result = instance.__call__(op, *args)
-            print time.time() - start
+            # print time.time() - start
+
             return result
