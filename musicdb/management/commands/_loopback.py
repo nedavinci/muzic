@@ -2,6 +2,7 @@
 
 import hashlib
 import os
+import io
 import stat
 import datetime
 from errno import ENOENT
@@ -12,13 +13,14 @@ from django.core.cache import cache
 from django.db.models import Q
 from django.conf import settings
 from django.utils.functional import cached_property
-from fuse import FuseOSError, LoggingMixIn, Operations
+from fuse import FuseOSError, Operations
+# from fuse import LoggingMixIn
 import audiotools
 
 from musicdb import models
 
 
-class MusicFsEntry(LoggingMixIn, Operations):
+class MusicFsEntry(Operations):
     instance = None
     fd = {}
     last_fd = 0
@@ -231,11 +233,10 @@ class MusicFile(MusicFsEntry):
         return os.path.join(settings.MUSIC_LIBRARY_PATH, self.instance.album.path, self.instance.path)
 
     def open(self, *args):
-        self.fh = os.open(self.abs_path(), os.O_RDONLY)
+        self.fh = io.open(self.abs_path(), "rb")
         return self.set_fd()
 
     def read(self, path, size, offset, fh, recursion=False):
-        # print '-> %s' % repr((path, size, offset, fh))
         if not recursion:
             self.rwlock.acquire()
         try:
@@ -246,8 +247,8 @@ class MusicFile(MusicFsEntry):
                 if len(result) < size:
                     result += self.read(path, size - len(result), offset + len(result), fh, True)
             else:
-                os.lseek(self.fh, offset - self.size_diff, 0)
-                result = os.read(self.fh, size)
+                self.fh.seek(offset - self.size_diff, 0)
+                result = self.fh.read(size)
         finally:
             if not recursion:
                 self.rwlock.release()
@@ -259,9 +260,6 @@ class Loopback(Operations):
         if op == 'init':
             return self.__init__()
         else:
-            # import time
-            # start = time.time()
-            # print '-> %s %s' % (op, repr(args))
             path = args[0]
 
             fd = None
@@ -285,6 +283,4 @@ class Loopback(Operations):
                     instance = MusicFile.from_path(path_list)
 
             result = instance.__call__(op, *args)
-            # print time.time() - start
-
             return result
