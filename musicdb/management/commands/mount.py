@@ -17,6 +17,6 @@ class Command(BaseCommand):
         if not os.path.exists(mount_point) or not os.path.isdir(mount_point):
             raise CommandError('Directory "%s" does not exists' % mount_point)
         FUSE(
-                Loopback(), mount_point, foreground=True,
+                Loopback(), mount_point, foreground=True, allow_others=True
         )
         self.stdout.write(self.style.SUCCESS('Successfully mounted "%s"' % mount_point))
