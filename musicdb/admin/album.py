@@ -15,8 +15,7 @@ import audiotools
 from .. import models
 from .album_inlines import CoverInline, ReleaseInline, TrackInline
 from .fields import AlbumPathField
-from .forms import AlbumFromPathForm
-from .views import AlbumFromPathView
+from .views import AlbumFromPathView, AlbumRecalculateRGView
 
 
 class AdminAlbumForm(forms.ModelForm):
@@ -34,8 +33,9 @@ class AlbumAdmin(admin.ModelAdmin):
     readonly_fields = ('rg_peak', 'rg_gain', 'add_time',
                        'last_fm', 'musicbrains', 'source_link')
 
-    list_display = ('artist', 'date', 'title', 'is_available')
-    list_filter = ('is_available', 'source')
+    # list_editable = ('source_id',)
+    list_display = ('artist', 'date', 'title', 'source_id', 'is_available', 'track_count')
+    list_filter = ('is_available', 'source', 'genre')
 
     search_fields = ['artist__name', 'title']
     formfield_overrides = {
@@ -90,13 +90,24 @@ class AlbumAdmin(admin.ModelAdmin):
     tracks_initial = []
     initial_path = False
 
+    def get_queryset(self, request):
+        qs = super(self.__class__, self).get_queryset(request)
+        qs = qs.annotate(django_models.Count('track'))
+        return qs
+
     def get_urls(self):
         urls = super(AlbumAdmin, self).get_urls()
         custom_urls = [
                 url('^addbypath/$',
-                    self.admin_site.admin_view(AlbumFromPathView.as_view()), name='musicdb_album_addbypath')
+                    self.admin_site.admin_view(AlbumFromPathView.as_view()), name='musicdb_album_addbypath'),
+                url('^(?P<pk>\d+)/recalculate_rg/$', self.admin_site.admin_view(
+                    AlbumRecalculateRGView.as_view()), name='musicdb_album_recalculate_replaygain')
         ]
         return custom_urls + urls
+
+    def track_count(self, obj):
+        return obj.track__count
+    track_count.admin_order_field = 'track__count'
 
     def last_fm(self, obj):
         link = \
@@ -141,9 +152,8 @@ class AlbumAdmin(admin.ModelAdmin):
     def get_changeform_initial_data(self, request):
         data = super(AlbumAdmin, self).get_changeform_initial_data(request)
         same_path_albums = models.Album.objects.filter(path=data['path'])
-        # TODO
         filenames = []
-        if data['path']:# and same_path_albums.count() == 0:
+        if data['path'] and same_path_albums.count() == 0:
             self.initial_path = data['path']
             abs_path = settings.MUSIC_LIBRARY_PATH + data['path']
             if os.path.isdir(abs_path) and os.path.exists(abs_path):

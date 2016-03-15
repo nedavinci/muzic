@@ -47,6 +47,9 @@ class Genre(models.Model):
     def __unicode__(self):
         return self.name
 
+    class Meta(object):
+        ordering = ['name']
+
 
 class Album(models.Model):
     MY_RIP = 0
@@ -98,7 +101,7 @@ class Album(models.Model):
         choices=RELEASE_TYPES, default=0)
     comment = models.TextField(blank=True, null=True)
     edition_title = models.CharField(
-            max_length=256, blank=True, null=True)
+            max_length=256, blank=False, null=True)
 
     mbid = models.CharField(max_length=36, blank=True, null=True)
     rg_peak = models.FloatField(blank=True, null=True, editable=False)
@@ -194,6 +197,9 @@ class Track(models.Model):
     lirycs = models.TextField(blank=True, null=True)
     rg_peak = models.FloatField(blank=True, null=True, editable=False)
     rg_gain = models.FloatField(blank=True, null=True, editable=False)
+
+    def get_fullpath(self):
+        return '/'.join((settings.MUSIC_LIBRARY_PATH, self.album.path, self.path)).replace('//', '/')
 
     def __unicode__(self):
         return '%s (%s)' % (self.title, self.album)

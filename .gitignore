@@ -4,3 +4,4 @@ db.sqlite3
 static_root
 run/
 *.swp
+fabfile.py
