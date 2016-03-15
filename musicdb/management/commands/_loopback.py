@@ -178,10 +178,23 @@ class MusicFile(MusicFsEntry):
                 track_name=track.title,
                 track_number=track.track_num,
                 album_name=track.album.title,
-                artist_name=track.album.artist.name,
+                artist_name=track.track_artist,
                 year=track.album.date.year,
         )
-        new_vorbiscomment = audiotools.flac.Flac_VORBISCOMMENT.converted(newmeta)
+        if track.track_artist:
+            newmeta.artist_name = track.track_artist
+        new_vorbismeta = audiotools.VorbisComment.converted(newmeta)
+        new_vorbismeta[u'ALBUM ARTIST'] = [track.album.artist.name]
+
+        new_vorbismeta[u'REPLAYGAIN_REFERENCE_LOUDNESS'] = [u'89.0 dB']
+        new_vorbismeta[u'REPLAYGAIN_ALBUM_GAIN'] = [unicode(track.album.rg_gain) + u' dB']
+        new_vorbismeta[u'REPLAYGAIN_ALBUM_PEAK'] = [unicode(track.album.rg_peak)]
+        new_vorbismeta[u'REPLAYGAIN_TRACK_GAIN'] = [unicode(track.rg_gain) + u' dB']
+        new_vorbismeta[u'REPLAYGAIN_TRACK_PEAK'] = [unicode(track.rg_peak)]
+
+        new_vorbismeta[u'MUSICBRAINZ_TRACKID'] = [u'MY_'+unicode(track.pk)]
+
+        new_vorbiscomment = audiotools.flac.Flac_VORBISCOMMENT.converted(new_vorbismeta)
 
         if meta.has_block(new_vorbiscomment.BLOCK_ID):
             meta.replace_blocks(new_vorbiscomment.BLOCK_ID, [new_vorbiscomment])
