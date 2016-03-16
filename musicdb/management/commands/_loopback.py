@@ -184,7 +184,7 @@ class MusicFile(MusicFsEntry):
         if track.track_artist:
             newmeta.artist_name = track.track_artist
         new_vorbismeta = audiotools.VorbisComment.converted(newmeta)
-        new_vorbismeta[u'ALBUM ARTIST'] = [track.album.artist.name]
+        new_vorbismeta[u'ALBUMARTIST'] = [track.album.artist.name]
 
         new_vorbismeta[u'REPLAYGAIN_REFERENCE_LOUDNESS'] = [u'89.0 dB']
         new_vorbismeta[u'REPLAYGAIN_ALBUM_GAIN'] = [unicode(track.album.rg_gain) + u' dB']
