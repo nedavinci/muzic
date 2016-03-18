@@ -22,7 +22,8 @@ class TrackInline(admin.TabularInline):
 
     def get_formset(self, request, obj=None, **kwargs):
         formset = super(TrackInline, self).get_formset(request, obj, **kwargs)
-        formset.__init__ = curry(formset.__init__, initial=self.initial)
+        if request.method == 'GET':
+            formset.__init__ = curry(formset.__init__, initial=self.initial)
         return formset
 
     # def has_add_permission(self, request):

@@ -178,7 +178,7 @@ class MusicFile(MusicFsEntry):
                 track_name=track.title,
                 track_number=track.track_num,
                 album_name=track.album.title,
-                artist_name=track.track_artist,
+                artist_name=track.album.artist.name,
                 year=track.album.date.year,
         )
         if track.track_artist:

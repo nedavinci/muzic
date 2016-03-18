@@ -9,7 +9,7 @@ class AlbumFromPathForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(AlbumFromPathForm, self).__init__(*args, **kwargs)
-        paths_in_db = Album.objects.exclude(path__isnull=True).exclude(pk=312).values_list('path', flat=True)
+        paths_in_db = Album.objects.exclude(path__isnull=True).values_list('path', flat=True)
         self.fields['path'] = AlbumPathField(
                 path=unicode(settings.MUSIC_LIBRARY_PATH),
                 recursive=True,

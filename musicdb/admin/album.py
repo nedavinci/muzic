@@ -57,7 +57,7 @@ class AlbumAdmin(admin.ModelAdmin):
         }),
         ('Main', {
             'fields': (
-                'artist', 'title', 'is_available', 'date',
+                'artist', 'title', 'is_available', 'is_deleted', 'date',
                 'add_time', 'active_from', 'path',
                 'genre', 'mbid'
             )
@@ -151,35 +151,64 @@ class AlbumAdmin(admin.ModelAdmin):
 
     def get_changeform_initial_data(self, request):
         data = super(AlbumAdmin, self).get_changeform_initial_data(request)
-        same_path_albums = models.Album.objects.filter(path=data['path'])
-        filenames = []
-        if data['path'] and same_path_albums.count() == 0:
-            self.initial_path = data['path']
-            abs_path = settings.MUSIC_LIBRARY_PATH + data['path']
-            if os.path.isdir(abs_path) and os.path.exists(abs_path):
-                for root, dirs, files in os.walk(abs_path):
-                    for file in files:
-                        if file.endswith(".flac"):
-                            filenames.append(audiotools.Filename.from_unicode(os.path.join(root, file)))
-        album_initial = {}
-        self.tracks_initial = []
-        for track in audiotools.open_files(filenames):
-            track_meta = track.get_metadata()
-            album_initial['title'] = track_meta.album_name
-            if track_meta.year:
-                album_initial['date'] = datetime.date(int(track_meta.year), 1, 1)
+        init_path = data.get('path')
+
+        if (init_path):
+            same_path_albums = models.Album.objects.filter(path=init_path)
+            filenames = []
+            if init_path and same_path_albums.count() == 0:
+                self.initial_path = init_path
+                abs_path = settings.MUSIC_LIBRARY_PATH + init_path
+                if os.path.isdir(abs_path) and os.path.exists(abs_path):
+                    for root, dirs, files in os.walk(abs_path):
+                        for file in files:
+                            if file.endswith(".flac"):
+                                filenames.append(audiotools.Filename.from_unicode(os.path.join(root, file)))
+            album_initial = {}
+            self.tracks_initial = []
+            artists = []
+            for track in audiotools.open_files(filenames):
+                track_meta = track.get_metadata()
+                album_initial['title'] = track_meta.album_name
+                if track_meta.year:
+                    try:
+                        album_initial['date'] = datetime.date(int(track_meta.year), 1, 1)
+                    except ValueError:
+                        pass
+                if track_meta.artist_name:
+                    artists.append(track_meta.artist_name)
+                self.tracks_initial.append({
+                    'path': os.path.relpath(
+                        track.filename.decode('UTF-8'), settings.MUSIC_LIBRARY_PATH + self.initial_path),
+                    'track_num': track_meta.track_number,
+                    'track_artist': track_meta.artist_name,
+                    'title': track_meta.track_name
+                })
+
+            from collections import Counter
+            artists_counter = Counter(artists)
+            album_artist = None
+            most_common_artist = artists_counter.most_common(1)
+            if len(most_common_artist) and most_common_artist[0][1] > len(self.tracks_initial) / 2:
+                album_artist = most_common_artist[0][0]
+
             if track_meta.artist_name:
-                try:
-                    album_initial['artist'] = models.Artist.objects.get(name=track_meta.artist_name)
-                except models.Artist.DoesNotExist:
-                    pass
-            self.tracks_initial.append({
-                'path': os.path.relpath(track.filename, settings.MUSIC_LIBRARY_PATH + self.initial_path),
-                'track_num': track_meta.track_number,
-                'title': track_meta.track_name
-            })
-        data.update(album_initial)
+                if not album_initial.get('artist'):
+                    try:
+                        album_initial['artist'] = models.Artist.objects.get(name__iexact=album_artist)
+                    except models.Artist.DoesNotExist:
+                        pass
+
+            for track_initial in self.tracks_initial:
+                if track_initial['track_artist'] == album_artist:
+                    del track_initial['track_artist']
+
+            data.update(album_initial)
         return data
+
+    def changeform_view(self, *args, **kwargs):
+        self.tracks_initial = []
+        return super(self.__class__, self).changeform_view(*args, **kwargs)
 
     def get_inline_instances(self, request, obj=None):
         instances = super(AlbumAdmin, self).get_inline_instances(

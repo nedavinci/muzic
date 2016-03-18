@@ -8,8 +8,9 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
-from django.db.models.signals import post_delete, post_save
-from django.dispatch.dispatcher import receiver
+
+# from django.db.models.signals import post_delete, post_save
+# from django.dispatch.dispatcher import receiver
 
 
 class Artist(models.Model):
@@ -77,7 +78,8 @@ class Album(models.Model):
 
     genre = models.ManyToManyField(Genre)
 
-    is_available = models.BooleanField(default=True)
+    is_available = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
     add_time = models.DateTimeField(auto_now_add=True)
     active_from = models.DateField(blank=True, null=True)
     path = models.FilePathField(
@@ -100,8 +102,7 @@ class Album(models.Model):
     release_type = models.PositiveSmallIntegerField(
         choices=RELEASE_TYPES, default=0)
     comment = models.TextField(blank=True, null=True)
-    edition_title = models.CharField(
-            max_length=256, blank=False, null=True)
+    edition_title = models.CharField(default="Original Release", max_length=256, blank=False, null=True)
 
     mbid = models.CharField(max_length=36, blank=True, null=True)
     rg_peak = models.FloatField(blank=True, null=True, editable=False)
@@ -123,6 +124,22 @@ def cover_location(instance, filename):
 
 
 class Cover(models.Model):
+    @staticmethod
+    def post_delete(sender, instance, *args, **kwargs):
+        instance.cover.delete(save=False)
+
+    @staticmethod
+    def post_save(sender, instance, created, *args, **kwargs):
+        if not created:
+            new_filename = Cover._meta.get_field('cover').generate_filename(
+                instance, instance.cover)
+            if instance.cover != new_filename:
+                rename(
+                    instance.cover.path, Cover.covers_storage.path(new_filename))
+                instance.cover.name = new_filename
+                print instance.cover.name
+                instance.save()
+
     COVER_TYPES = (
         ("back_out", "back out"),
         ("front_out", "front out"),
@@ -159,22 +176,8 @@ class Cover(models.Model):
         )
 
 
-@receiver(post_delete, sender=Cover)
-def post_delete_cover(sender, instance, *args, **kwargs):
-    instance.cover.delete(save=False)
-
-
-@receiver(post_save, sender=Cover)
-def post_save_cover(sender, instance, created, *args, **kwargs):
-    if not created:
-        new_filename = Cover._meta.get_field('cover').generate_filename(
-            instance, instance.cover)
-        if instance.cover != new_filename:
-            rename(
-                instance.cover.path, Cover.covers_storage.path(new_filename))
-            instance.cover.name = new_filename
-            print instance.cover.name
-            instance.save()
+models.signals.post_delete.connect(Cover.post_delete, sender=Cover)
+models.signals.post_save.connect(Cover.post_save, sender=Cover)
 
 
 class Track(models.Model):
@@ -192,7 +195,7 @@ class Track(models.Model):
         allow_files=True,
         allow_folders=False,
         match=r".*\.flac$")
-    length = models.PositiveIntegerField()
+    length = models.PositiveIntegerField(null=True)
     disc = models.PositiveSmallIntegerField(default=1)
     lirycs = models.TextField(blank=True, null=True)
     rg_peak = models.FloatField(blank=True, null=True, editable=False)
