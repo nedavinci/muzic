@@ -153,7 +153,7 @@ class Cover(models.Model):
     )
 
     covers_storage = FileSystemStorage(
-        location=settings.MUSIC_LIBRARY_PATH, base_url='/musicdb/media/')
+        location=settings.MUSIC_LIBRARY_PATH, base_url=settings.MUSIC_LIBRARY_BASE_URL)
 
     cover_id = models.AutoField(primary_key=True, editable=False)
     album = models.ForeignKey(Album)

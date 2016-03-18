@@ -118,3 +118,4 @@ PASSWORD_HASHERS = [
 # STATIC_ROOT = os.path.join(BASE_DIR, "static_root")
 
 MUSIC_LIBRARY_PATH = os.path.join(os.path.expanduser("~"), "music")
+MUSIC_LIBRARY_BASE_URL = '/musicdb/media/'
