@@ -88,7 +88,6 @@ class AlbumAdmin(admin.ModelAdmin):
     ]
 
     tracks_initial = []
-    initial_path = False
 
     def get_queryset(self, request):
         qs = super(self.__class__, self).get_queryset(request)
@@ -157,7 +156,6 @@ class AlbumAdmin(admin.ModelAdmin):
             same_path_albums = models.Album.objects.filter(path=init_path)
             filenames = []
             if init_path and same_path_albums.count() == 0:
-                self.initial_path = init_path
                 abs_path = settings.MUSIC_LIBRARY_PATH + init_path
                 if os.path.isdir(abs_path) and os.path.exists(abs_path):
                     for root, dirs, files in os.walk(abs_path):
@@ -179,7 +177,7 @@ class AlbumAdmin(admin.ModelAdmin):
                     artists.append(track_meta.artist_name)
                 self.tracks_initial.append({
                     'path': os.path.relpath(
-                        track.filename.decode('UTF-8'), settings.MUSIC_LIBRARY_PATH + self.initial_path),
+                        track.filename.decode('UTF-8'), settings.MUSIC_LIBRARY_PATH + init_path),
                     'track_num': track_meta.track_number,
                     'track_artist': track_meta.artist_name,
                     'title': track_meta.track_name
@@ -204,6 +202,7 @@ class AlbumAdmin(admin.ModelAdmin):
                     del track_initial['track_artist']
 
             data.update(album_initial)
+
         return data
 
     def changeform_view(self, *args, **kwargs):
@@ -220,8 +219,10 @@ class AlbumAdmin(admin.ModelAdmin):
                 path = False
                 if obj and obj.path:
                     path = obj.path
-                elif self.initial_path:
-                    path = self.initial_path
+                else:
+                    initials = super(AlbumAdmin, self).get_changeform_initial_data(request)
+                    path = initials.get('path')
+
                 if path:
                     instance.formfield_overrides[
                         django_models.FilePathField]['path'] = (
