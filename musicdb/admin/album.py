@@ -192,7 +192,7 @@ class AlbumAdmin(admin.ModelAdmin):
             if len(most_common_artist) and most_common_artist[0][1] > len(self.tracks_initial) / 2:
                 album_artist = most_common_artist[0][0]
 
-            if track_meta.artist_name:
+            if album_artist:
                 if not album_initial.get('artist'):
                     try:
                         album_initial['artist'] = models.Artist.objects.get(name__iexact=album_artist)
