@@ -34,7 +34,7 @@ class AlbumAdmin(admin.ModelAdmin):
                        'last_fm', 'musicbrains', 'source_link')
 
     # list_editable = ('source_id',)
-    list_display = ('artist', 'add_time', 'date', 'title', 'source_id', 'is_available', 'track_count')
+    list_display = ('artist', 'date', 'title', 'add_time', 'is_available', 'track_count')
     list_filter = ('is_available', 'source', 'genre')
 
     search_fields = ['artist__name', 'title']

@@ -5,6 +5,8 @@ import os
 import io
 import stat
 import datetime
+import calendar
+import random
 from errno import ENOENT
 from threading import Lock
 import StringIO
@@ -131,10 +133,12 @@ class MusicDir(MusicFsEntry):
             'st_uid':  0,       # uid
             'st_gid':  0,       # gid
             'st_size': 1,       # size
-            'st_atime': 0,      # int(rand(3600))*86400, #atime
+            'st_atime': random.randint(1, 3600)*86400,      # int(rand(3600))*86400, #atime
             'st_mtime': 0,      # int(rand(3600))*86400, #mtime
             'st_ctime': 0,       # int(rand(3600))*86400, #ctime
         })
+        if self.instance:
+            attrs['st_ctime'] = calendar.timegm(self.instance.add_time.timetuple())
         return attrs
 
 
