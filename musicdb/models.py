@@ -140,16 +140,25 @@ class Cover(models.Model):
                 print instance.cover.name
                 instance.save()
 
+    COVER_TYPE_BACK_OUT = "back_out"
+    COVER_TYPE_FRONT_OUT = "front_out"
+    COVER_TYPE_BACK_IN = "back_in"
+    COVER_TYPE_FRONT_IN = "front_in"
+    COVER_TYPE_DISC = "disc"
+    COVER_TYPE_IN = "in"
+    COVER_TYPE_OUT = "out"
+    COVER_TYPE_BOOKLET = "booklet"
+    COVER_TYPE_OTHER = "other"
     COVER_TYPES = (
-        ("back_out", "back out"),
-        ("front_out", "front out"),
-        ("back_in", "back in"),
-        ("front_in", "front in"),
-        ("disc", "disc"),
-        ("in", "in"),
-        ("out", "out"),
-        ("booklet", "booklet"),
-        ("other", "other"),
+        (COVER_TYPE_BACK_OUT, "back out"),
+        (COVER_TYPE_FRONT_OUT, "front out"),
+        (COVER_TYPE_BACK_IN, "back in"),
+        (COVER_TYPE_FRONT_IN, "front in"),
+        (COVER_TYPE_DISC, "disc"),
+        (COVER_TYPE_IN, "in"),
+        (COVER_TYPE_OUT, "out"),
+        (COVER_TYPE_BOOKLET, "booklet"),
+        (COVER_TYPE_OTHER, "other"),
     )
 
     covers_storage = FileSystemStorage(

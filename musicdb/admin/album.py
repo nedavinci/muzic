@@ -34,8 +34,8 @@ class AlbumAdmin(admin.ModelAdmin):
                        'last_fm', 'musicbrains', 'source_link')
 
     # list_editable = ('source_id',)
-    list_display = ('artist', 'date', 'title', 'add_time', 'is_available', 'track_count')
-    list_filter = ('is_available', 'source', 'genre')
+    list_display = ('artist', 'date', 'title', 'add_time', 'is_available', 'track_count', 'has_tracklisting')
+    list_filter = ('is_available', 'is_deleted', 'source', 'genre')
 
     search_fields = ['artist__name', 'title']
     formfield_overrides = {
@@ -91,7 +91,17 @@ class AlbumAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super(self.__class__, self).get_queryset(request)
-        qs = qs.annotate(django_models.Count('track'))
+        qs = qs.annotate(django_models.Count('track', distinct=True))
+        qs = qs.annotate(
+                back_covers_count=django_models.Count(
+                    django_models.Case(
+                        django_models.When(
+                            (django_models.Q(cover__covertype=models.Cover.COVER_TYPE_BACK_OUT) |
+                                django_models.Q(cover__covertype=models.Cover.COVER_TYPE_OUT)),
+                            then=1,
+                        )
+                    ), distinct=True)
+        )
         return qs
 
     def get_urls(self):
@@ -103,6 +113,11 @@ class AlbumAdmin(admin.ModelAdmin):
                     AlbumRecalculateRGView.as_view()), name='musicdb_album_recalculate_replaygain')
         ]
         return custom_urls + urls
+
+    def has_tracklisting(self, obj):
+        return bool(obj.back_covers_count)
+    has_tracklisting.admin_order_field = 'back_covers_count'
+    has_tracklisting.boolean = True
 
     def track_count(self, obj):
         return obj.track__count
