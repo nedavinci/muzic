@@ -47,7 +47,9 @@ class ContenteditableInput(widgets.TextInput):
 
         res = super(ContenteditableInput, self).render(name, value, attrs=attributes)
 
-        val_escaped = escape(value)
+        val_escaped = ''
+        if value:
+            val_escaped = escape(self._format_value(value))
         res += '<div class="vTextField contenteditable" data-target-input="#%s" contenteditable>%s</div>' % \
             (attrs['id'], self.capitalization_highlight(val_escaped))
         return res
