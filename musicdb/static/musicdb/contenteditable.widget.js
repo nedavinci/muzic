@@ -9,7 +9,9 @@
         })
         $('.contenteditable').keydown(function(e) {
             e.preventDefault();
-            $(this).closest('form').submit();
+            if (e.keyCode === 13) {
+                $(this).closest('form').submit();
+            }
         });
     });
 })(django.jQuery);
