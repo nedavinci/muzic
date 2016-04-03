@@ -6,12 +6,15 @@ from django_select2.forms import Select2Widget
 
 from .. import models
 from .fields import CoverFileInput, RelativeSortedFilePathField
+from .widgets import ContenteditableInput
 
 
 class TrackInline(admin.TabularInline):
     formfield_overrides = {
         django_models.FilePathField: {
-            'form_class': RelativeSortedFilePathField}
+            'form_class': RelativeSortedFilePathField},
+        django_models.CharField: {
+            'widget': ContenteditableInput},
     }
     model = models.Track
     can_delete = False
