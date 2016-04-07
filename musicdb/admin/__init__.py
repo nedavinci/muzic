@@ -18,6 +18,7 @@ class PlayLogAdmin(admin.ModelAdmin):
 
 class TrackAdmin(admin.ModelAdmin):
         search_fields = 'title',
+        readonly_fields = 'path',
 
 
 admin.site.register(models.Artist)
