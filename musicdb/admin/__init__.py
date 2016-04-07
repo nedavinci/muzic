@@ -16,9 +16,13 @@ class PlayLogAdmin(admin.ModelAdmin):
         )
 
 
+class TrackAdmin(admin.ModelAdmin):
+        search_fields = 'title',
+
+
 admin.site.register(models.Artist)
 admin.site.register(models.Album, AlbumAdmin)
-admin.site.register(models.Track)
+admin.site.register(models.Track, TrackAdmin)
 admin.site.register(models.Label)
 admin.site.register(models.Genre)
 admin.site.register(models.PlayLog, PlayLogAdmin)
