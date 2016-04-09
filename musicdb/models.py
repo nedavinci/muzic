@@ -16,7 +16,7 @@ from django.core.files.storage import FileSystemStorage
 class Artist(models.Model):
     artist_id = models.AutoField(primary_key=True, editable=False)
 
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, db_index=True)
 
     def __unicode__(self):
         return self.name
@@ -26,7 +26,7 @@ class Artist(models.Model):
 
 
 class Label(models.Model):
-    name = models.CharField(max_length=256, blank=True, null=True)
+    name = models.CharField(max_length=256, blank=True, null=True, db_index=True)
     mbid = models.CharField(max_length=36, blank=True, null=True)
 
     def __unicode__(self):
@@ -91,8 +91,8 @@ class Album(models.Model):
         allow_files=False,
         allow_folders=True)
 
-    title = models.CharField(max_length=255)
-    date = models.DateField()
+    title = models.CharField(max_length=255, db_index=True)
+    date = models.DateField(db_index=True)
     release_date = models.DateField(blank=True, null=True)
 
     barcode = models.CharField(max_length=256, blank=True, null=True)
