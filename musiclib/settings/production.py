@@ -13,3 +13,16 @@ STATICFILES_DIRS = (
 )
 STATIC_ROOT = os.path.join(BASE_DIR, "static_root")
 ALLOWED_HOSTS = ["*"]
+
+INSTALLED_APPS.extend(('cacheops',))
+
+CACHEOPS_REDIS = {
+    'host': 'localhost',
+    'port': 6379,       
+    'db': 1,            
+    'socket_timeout': 3,
+}
+
+CACHEOPS = {
+    'musiclib.*': {'ops': 'all', 'timeout': 60*60},
+}
