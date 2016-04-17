@@ -1,36 +1,12 @@
 {% extends "admin/change_list.html" %}
 {% load i18n admin_static %}
 
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" type="text/css" href="{% static "admin/css/fields_select.css" %}" />
+{% endblock %}
+
 {% block filters %}
-    <style>
-    .changelist-sidebar {
-        position: absolute;
-        top: 0;
-        right: 0;
-        z-index: 1000;
-        width: 240px;
-        background: #f8f8f8;
-        border-left: none;
-        margin: 0;
-    }
-    #changelist-filter {
-        position: relative;
-    }
-    #changelist-sidebar .submit-row {
-        padding: 0 1em;
-        margin-bottom: 1em;
-    }
-    #id_list_display_select {
-        margin-left: 0;
-        list-style: none;
-    }
-    #id_list_display_select li {
-        list-style-type: none;
-    }
-    .field-select-form > label {
-        padding: 0 10px;
-    }
-    </style>
     <div id="changelist-sidebar" class="changelist-sidebar">
         <h2>{{ list_display_form.list_display_select.label_tag }}</h2>
         <form method="post" class="field-select-form" action="{{ list_display_form_action_url }}">
