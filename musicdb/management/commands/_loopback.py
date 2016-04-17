@@ -87,7 +87,7 @@ class MusicDir(MusicFsEntry):
     def path(self):
         if self.instance:
             album = self.instance
-            path = self.__class__.fat_restrict(u"%s–%d–%s" % (album.artist.name, album.date.year, album.title))
+            path = self.MusicDir.fat_restrict(u"%s–%d–%s" % (album.artist.name, album.date.year, album.title))
             cache.set('fuse-%s-%s-pk' % (
                 self.__class__.__name__, hashlib.md5(path.encode('utf-8')).hexdigest()), album.pk)
             return path

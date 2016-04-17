@@ -32,6 +32,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'adminlist_fields_select',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

@@ -1,5 +1,5 @@
-import os
 import datetime
+import os
 
 from django import forms
 from django.conf import settings
@@ -16,6 +16,7 @@ from .. import models
 from .album_inlines import CoverInline, ReleaseInline, TrackInline
 from .fields import AlbumPathField
 from .views import AlbumFromPathView, AlbumRecalculateRGView
+from adminlist_fields_select.admin import FieldSelectMixin
 
 
 class AdminAlbumForm(forms.ModelForm):
@@ -28,13 +29,37 @@ class AdminAlbumForm(forms.ModelForm):
             self.add_error('source_id', msg)
 
 
-class AlbumAdmin(admin.ModelAdmin):
+class AlbumAdmin(FieldSelectMixin, admin.ModelAdmin):
     form = AdminAlbumForm
     readonly_fields = ('rg_peak', 'rg_gain', 'add_time',
                        'last_fm', 'musicbrains', 'source_link')
 
     # list_editable = ('source_id',)
-    list_display = ('artist', 'date', 'title', 'add_time', 'is_available')  # , 'track_count', 'has_tracklisting')
+    list_display_defaults = ('artist', 'title', 'date', 'is_available', )
+    list_display_variants = (
+        'artist',
+        # 'labels',
+        # 'genre',
+        'is_available',
+        'is_deleted',
+        'add_time',
+        'active_from',
+        'path',
+        'title',
+        'date',
+        'release_date',
+        'barcode',
+        'source',
+        'source_id',
+        'release_type',
+        'comment',
+        'edition_title',
+        'mbid',
+        'rg_peak',
+        'rg_gain',
+    )
+
+    # list_display = ('artist', 'date', 'title', 'add_time', 'is_available')  # , 'track_count', 'has_tracklisting')
     list_filter = ('is_available', 'is_deleted', 'source', 'genre')
 
     search_fields = ['artist__name', 'title']
@@ -90,7 +115,7 @@ class AlbumAdmin(admin.ModelAdmin):
     tracks_initial = []
 
     # def get_queryset(self, request):
-    #     qs = super(self.__class__, self).get_queryset(request)
+    #     qs = super(self.AlbumAdmin, self).get_queryset(request)
     #     qs = qs.annotate(django_models.Count('track', distinct=True))
     #     qs = qs.annotate(
     #             back_covers_count=django_models.Count(
@@ -222,7 +247,7 @@ class AlbumAdmin(admin.ModelAdmin):
 
     def changeform_view(self, *args, **kwargs):
         self.tracks_initial = []
-        return super(self.__class__, self).changeform_view(*args, **kwargs)
+        return super(AlbumAdmin, self).changeform_view(*args, **kwargs)
 
     def get_inline_instances(self, request, obj=None):
         instances = super(AlbumAdmin, self).get_inline_instances(
