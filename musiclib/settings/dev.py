@@ -3,6 +3,8 @@ import os
 from defaults import *
 DEBUG = True
 
+SECRET_KEY = '8k4ts_@ywt_jf1i!xuvo$1&14yk(skj-35c^v$b7_fxrfai(-p'
+
 MUSIC_LIBRARY_PATH = '/mnt/lossless/'
 
 INSTALLED_APPS.extend(('debug_toolbar', 'django_extensions', 'cacheops'))

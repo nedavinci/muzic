@@ -5,3 +5,4 @@ static_root
 run/
 *.swp
 fabfile.py
+musiclib/settings/production.py
